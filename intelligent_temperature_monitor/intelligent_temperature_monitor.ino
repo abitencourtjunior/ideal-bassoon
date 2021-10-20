@@ -19,6 +19,7 @@ void setup()
   display.init();
   display.flipScreenVertically();
 }
+
 void initScreen()
 {
   for (int counter = 0; counter <= 100; counter++)
@@ -33,6 +34,17 @@ void initScreen()
   }
 }
 
+void writeScreen(JsonObject object){
+  display.clear();
+  display.setTextAlignment(TEXT_ALIGN_CENTER);
+  display.setFont(ArialMT_Plain_16);
+  display.drawString(63, 10, "Dia: " + String(object["day"]));
+  display.drawString(63, 26, "Temp: " + String(object["temperature"]));
+  display.drawString(63, 45, "Ventos: " + String(object["wind"]));
+  display.display();
+  delay(3000);
+}
+
 void get_weather_by_days()
 {
   WiFiClient clientWifi;
@@ -43,12 +55,11 @@ void get_weather_by_days()
 
   int httpCode = http.GET();
 
-  if (httpCode > 0)
-  {
+  if (httpCode > 0) {
     Serial.printf("[HTTP] GET... code: %d\n", httpCode);
 
-    if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY)
-    {
+    if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
+      
       DeserializationError error = deserializeJson(doc, http.getString());
 
       if (error) {
@@ -57,17 +68,21 @@ void get_weather_by_days()
         return;
       }
       
-    const char* temperature = doc["temperature"];
-    Serial.println(temperature);
+      JsonArray forecasts = doc["forecast"].as<JsonArray>();
+      
+      for(JsonVariant forecast : forecasts) {
+          JsonObject object = forecast.as<JsonObject>();
+          writeScreen(object);
+      }
       
     }
-  }
-  else
-  {
+    
+  } else {
     Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
   }
-
+  
   http.end();
+  
 }
 
 
@@ -77,6 +92,6 @@ void loop()
   initScreen();
   while(true){
     get_weather_by_days();
-    delay(15000);
+    delay(1500);
   }
 }
